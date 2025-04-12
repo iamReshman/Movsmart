@@ -1,78 +1,58 @@
+
+
+ 
 import streamlit as st
-import folium
-from streamlit_folium import st_folium
 import json
 import os
-from PIL import Image
 
-# Set up page configuration
+# Streamlit page setup
 st.set_page_config(layout="wide")
-st.title("🚌 Movsmart - Bus Tracker & Seat Management")
+st.title("🚌 Movsmart – Live Bus Seat Availability")
 
-# File paths
-DATA_FILE = os.path.join(os.path.expanduser("~"), "bus_data.json")
-SEAT_IMAGES = {
-    "vacant": "https://example.com/vacant_seat_image.png",  # Replace with actual image URL or local path
-    "occupied": "https://example.com/occupied_seat_image.png"  # Replace with actual image URL or local path
-}
+# Load data
+DATA_FILE = "bus_data.json"
 
-# Function to load bus data
 def load_data():
     try:
         with open(DATA_FILE, 'r') as f:
             return json.load(f)
     except:
-        return {"latitude": 0, "longitude": 0, "seats": [False, False, False]}
+        # Default dummy data for 50 seats
+        return {
+            "latitude": 12.9716,
+            "longitude": 77.5946,
+            "seats": [False] * 50
+        }
 
 data = load_data()
+seats = data["seats"]
 
-# Function to calculate occupied seats and total seats
-def calculate_seat_statistics(seats):
-    total_seats = len(seats)
-    occupied = sum(seats)
-    vacant = total_seats - occupied
-    return total_seats, occupied, vacant
+# Count stats
+total_seats = len(seats)
+occupied_count = sum(seats)
+vacant_count = total_seats - occupied_count
 
-# Display seat count statistics
-total_seats, occupied, vacant = calculate_seat_statistics(data["seats"])
-st.sidebar.subheader("Seat Statistics")
-st.sidebar.markdown(f"**Total Seats:** {total_seats}")
-st.sidebar.markdown(f"**Occupied Seats:** {occupied}")
-st.sidebar.markdown(f"**Vacant Seats:** {vacant}")
+# Dashboard summary
+st.markdown(f"### 🧾 Total Seats: `{total_seats}`")
+st.markdown(f"### ✅ Vacant: `{vacant_count}` | ❌ Occupied: `{occupied_count}`")
+st.markdown("---")
 
-# Seat layout display (using images for a better visual representation)
-st.subheader("Seat Layout")
-cols = st.columns(len(data["seats"]))
-for idx, status in enumerate(data["seats"]):
-    seat_status = "vacant" if not status else "occupied"
-    seat_image = SEAT_IMAGES[seat_status]
-    cols[idx].image(seat_image, caption=f"Seat {idx + 1}", width=100)
+# URLs for seat images (replace with your own hosted images if needed)
+occupied_img = "https://i.imgur.com/5J1y8bk.png"  # red seat
+vacant_img = "https://i.imgur.com/y9v3R8D.png"    # green seat
 
-# Display Map with Bus Location
-st.subheader("🗺️ Bus Location")
-m = folium.Map(location=[data['latitude'], data['longitude']], zoom_start=17)
-folium.Marker([data['latitude'], data['longitude']], tooltip="Bus Location").add_to(m)
-st_folium(m, width=700)
+# Show seat status with images
+st.subheader("🪑 Seat Map")
 
-# Optional: Add a refresh button for manual data update
-if st.button("Refresh"):
-    data = load_data()
-    st.experimental_rerun()
+# Arrange in 5 columns
+cols = st.columns(5)
 
-# Stylish text and description
-st.markdown("""
-    ### About this App
-    **Movsmart** is a real-time bus location and seat occupancy tracking app.
-    - View live bus location on the map.
-    - See the current seat occupancy status with a visual layout.
-    - Get detailed statistics on occupied and vacant seats.
-""")
+for i, status in enumerate(seats):
+    with cols[i % 5]:
+        img_url = occupied_img if status else vacant_img
+        label = f"Seat {i+1}\n{'Occupied ❌' if status else 'Vacant ✅'}"
+        st.image(img_url, caption=label, use_column_width=True)
 
-# Footer or Commercial Info
-st.markdown("""
-    <hr>
-    <footer>
-        <p style="text-align:center;">Powered by Movsmart. Contact us at info@movsmart.com</p>
-    </footer>
-""", unsafe_allow_html=True)
+
+
 
